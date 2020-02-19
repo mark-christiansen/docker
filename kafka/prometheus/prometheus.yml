@@ -1,0 +1,10 @@
+global:
+  scrape_interval:     10s
+  evaluation_interval: 10s
+  external_labels: 
+    monitor: 'kafka'
+
+scrape_configs:
+  - job_name: 'kafka'
+    static_configs:
+      - targets: [broker1:7072,broker2:7073,broker3:7074,broker4:7075,broker5:7076]

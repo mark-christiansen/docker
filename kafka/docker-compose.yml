@@ -2,7 +2,7 @@ version: '2'
 services:
 
   zookeeper:
-    image: confluentinc/cp-zookeeper:4.0.1-1
+    image: confluentinc/cp-zookeeper:latest
     hostname: zookeeper
     container_name: zookeeper
     ports:
@@ -15,13 +15,14 @@ services:
       - /Users/markchristiansen/volumes/zookeeper/logs:/var/lib/zookeeper/log
 
   broker-1:
-    image: confluentinc/cp-kafka:4.0.2-1
+    image: confluentinc/cp-kafka:latest
     hostname: broker1
     container_name: broker1
     depends_on:
       - zookeeper
     ports:
       - "9092:9092"
+      - "7072:7072"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
@@ -56,17 +57,20 @@ services:
       KAFKA_LOG_ROLL_HOURS: 24
       KAFKA_LOG_SEGMENT_BYTES: 1073741824
       KAFKA_LOG_RETENTION_HOURS: 72
+      KAFKA_OPTS: "$KAFKA_OPTS -javaagent:/jmx_exporter/jmx_prometheus_javaagent-0.12.0.jar=7072:/jmx_exporter/kafka-2-0.yml"
     volumes:
       - /Users/markchristiansen/volumes/broker1/data:/logs
+      - ./jmx_exporter:/jmx_exporter
 
   broker-2:
-    image: confluentinc/cp-kafka:4.0.2-1
+    image: confluentinc/cp-kafka:latest
     hostname: broker2
     container_name: broker2
     depends_on:
       - zookeeper
     ports:
       - "9093:9093"
+      - "7073:7073"
     environment:
       KAFKA_BROKER_ID: 2
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
@@ -101,17 +105,20 @@ services:
       KAFKA_LOG_ROLL_HOURS: 24
       KAFKA_LOG_SEGMENT_BYTES: 1073741824
       KAFKA_LOG_RETENTION_HOURS: 72
+      KAFKA_OPTS: "$KAFKA_OPTS -javaagent:/jmx_exporter/jmx_prometheus_javaagent-0.12.0.jar=7073:/jmx_exporter/kafka-2-0.yml"
     volumes:
       - /Users/markchristiansen/volumes/broker2/data:/logs
+      - ./jmx_exporter:/jmx_exporter
 
   broker-3:
-    image: confluentinc/cp-kafka:4.0.2-1
+    image: confluentinc/cp-kafka:latest
     hostname: broker3
     container_name: broker3
     depends_on:
       - zookeeper
     ports:
       - "9094:9094"
+      - "7074:7074"
     environment:
       KAFKA_BROKER_ID: 3
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
@@ -146,17 +153,20 @@ services:
       KAFKA_LOG_ROLL_HOURS: 24
       KAFKA_LOG_SEGMENT_BYTES: 1073741824
       KAFKA_LOG_RETENTION_HOURS: 72
+      KAFKA_OPTS: "$KAFKA_OPTS -javaagent:/jmx_exporter/jmx_prometheus_javaagent-0.12.0.jar=7074:/jmx_exporter/kafka-2-0.yml"
     volumes:
       - /Users/markchristiansen/volumes/broker3/data:/logs
+      - ./jmx_exporter:/jmx_exporter
 
   broker-4:
-    image: confluentinc/cp-kafka:4.0.2-1
+    image: confluentinc/cp-kafka:latest
     hostname: broker4
     container_name: broker4
     depends_on:
       - zookeeper
     ports:
       - "9095:9095"
+      - "7075:7075"
     environment:
       KAFKA_BROKER_ID: 4
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
@@ -191,17 +201,20 @@ services:
       KAFKA_LOG_ROLL_HOURS: 24
       KAFKA_LOG_SEGMENT_BYTES: 1073741824
       KAFKA_LOG_RETENTION_HOURS: 72
+      KAFKA_OPTS: "$KAFKA_OPTS -javaagent:/jmx_exporter/jmx_prometheus_javaagent-0.12.0.jar=7075:/jmx_exporter/kafka-2-0.yml"
     volumes:
       - /Users/markchristiansen/volumes/broker4/data:/logs
+      - ./jmx_exporter:/jmx_exporter
 
   broker-5:
-    image: confluentinc/cp-kafka:4.0.2-1
+    image: confluentinc/cp-kafka:latest
     hostname: broker5
     container_name: broker5
     depends_on:
       - zookeeper
     ports:
       - "9096:9096"
+      - "7076:7076"
     environment:
       KAFKA_BROKER_ID: 5
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
@@ -236,11 +249,13 @@ services:
       KAFKA_LOG_ROLL_HOURS: 24
       KAFKA_LOG_SEGMENT_BYTES: 1073741824
       KAFKA_LOG_RETENTION_HOURS: 72
+      KAFKA_OPTS: "$KAFKA_OPTS -javaagent:/jmx_exporter/jmx_prometheus_javaagent-0.12.0.jar=7076:/jmx_exporter/kafka-2-0.yml"
     volumes:
       - /Users/markchristiansen/volumes/broker5/data:/logs
+      - ./jmx_exporter:/jmx_exporter
 
   schema-registry:
-    image: confluentinc/cp-schema-registry:4.0.1-1
+    image: confluentinc/cp-schema-registry:latest
     hostname: schema-registry
     container_name: schema-registry
     depends_on:
@@ -256,4 +271,24 @@ services:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: 'zookeeper:2181'
       SCHEMA_REGISTRY_LISTENERS: 'http://0.0.0.0:8081'
+      # timeout for an operation on the Kafka store
+      SCHEMA_REGISTRY_KAFKASTORE_TIMEOUT_MS: 10000
+      SCHEMA_REGISTRY_KAFKASTORE_INIT_TIMEOUT_MS: 120000
       #SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'PLAINTEXT://0.0.0.0:19092,PLAINTEXT://0.0.0.0:19093,PLAINTEXT://0.0.0.0:19094,PLAINTEXT://0.0.0.0:19095,PLAINTEXT://0.0.0.0:19096'
+
+  prometheus:
+    image: prom/prometheus:latest
+    hostname: prometheus
+    container_name: prometheus
+    command: --config.file=/prom-config/prometheus.yml
+    ports:
+      - 9090:9090
+    volumes:
+      - ./prometheus:/prom-config
+
+  grafana:
+    image: grafana/grafana:latest
+    hostname: grafana
+    container_name: grafana
+    ports: 
+      - 3000:3000
